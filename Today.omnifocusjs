@@ -1,0 +1,65 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Gwen Wendell",
+	"identifier": "com.GwenWendell.today",
+	"version": "1.0",
+	"description": "Set Defer and Due dates to Today",
+	"label": "Today",
+	"shortLabel": "Today"
+}*/
+(() => {
+	function updateTask(task,todayDefer, todayDue, includeChildren = false) {
+		if (!task.completed) {
+			task.deferDate = todayDefer
+			task.dueDate = todayDue
+			if (includeChildren) {
+				task.children.forEach(function(child){
+					child.deferDate = todayDefer
+					child.dueDate = todayDue
+				})
+			}
+		}
+	}
+
+	var action = new PlugIn.Action(function(selection, sender){
+		// variables
+		var now = new Date();
+    var today = Calendar.current.startOfDay(now);
+    var dcDue = new DateComponents();
+    dcDue.hour = 17;
+    var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue);
+    var dcDefer = new DateComponents();
+    dcDefer.hour = 8;
+    var todayDefer = Calendar.current.dateByAddingDateComponents(
+      today,
+      dcDefer
+    );
+		// action code
+		var inputForm = new Form()
+		var shouldIncludeChildren = new Form.Field.Checkbox(
+			"shouldIncludeChildren",
+			"Apply to children",
+			false
+		)
+		inputForm.addField(shouldIncludeChildren)
+		var formPrompt = "Also set children to today?"
+		var buttonTitle = "OK"
+		var formPromise = inputForm.show(formPrompt, buttonTitle)
+
+		formPromise.then(function(formObject) {
+			includeChildren = formObject.values["shouldIncludeChildren"]
+			selection.tasks.forEach(function(task){
+				updateTask(task, todayDefer, todayDue, includeChildren)
+			})
+		})
+
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		return (selection.tasks.length > 0)
+	};
+
+	return action;
+})();

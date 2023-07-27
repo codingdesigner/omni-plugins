@@ -1,0 +1,59 @@
+/*{
+	"type": "library",
+	"targets": ["omnifocus"],
+	"identifier": "com.GwenWendell.timeTags",
+	"version": "1.0"
+}*/
+(() => {
+	const tagNamesLibrary = new PlugIn.Library(new Version("1.0"));
+
+  tagNamesLibrary.timeTagNames = function(){
+    const timeTagNamesMap = new Map([
+      [0, "no estimate"],
+      [1, "1m"],
+      [5, "5m"],
+      [10, "10m"],
+      [15, "15m"],
+      [20, "20m"],
+      [30, "30m"],
+      [60, "1h"],
+      [1440, "1d"],
+    ]);
+    return timeTagNamesMap
+  };
+
+	tagNamesLibrary.info = function(){
+			var libProps = Object.getOwnPropertyNames(lib)
+			libProps.forEach((propName, index) => {
+        console.log(['propName, index', propName, index])
+				if (index != 0){console.log(" ")}
+				console.log("•", propName)
+				var item = lib[propName]
+				if (typeof item === "string"){
+					console.log(item)
+				} else if (typeof item === "function"){
+					console.log(item.toString())
+				} else if (typeof item === "object"){
+					if(item instanceof Version){
+						console.log(item.versionString)
+					} else if(item instanceof PlugIn){
+						console.log(item.identifier)
+					}
+				}
+			})
+		};
+
+	return tagNamesLibrary;
+})();
+// const timeTagNames = new Map([
+//   [1, "1m"],
+//   [5, "5m"],
+//   [10, "10m"],
+//   [15, "15m"],
+//   [20, "20m"],
+//   [30, "30m"],
+//   [60, "1h"],
+//   [1440, "1d"],
+// ]);
+
+// export { timeTagNames }

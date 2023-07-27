@@ -1,0 +1,79 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Gwen Wendell",
+	"identifier": "com.GwenWendell.setTimes",
+	"version": "1.0",
+	"description": "Set Times",
+	"label": "Times",
+	"shortLabel": "Times"
+}*/
+(() => {
+  function updateTask(task, estimatedMinutes, addTag, removeTags) {
+    if (!task.completed) {
+      task.estimatedMinutes = estimatedMinutes !== 0 ? estimatedMinutes : null;
+      task.removeTags(removeTags);
+      if (addTag) {
+        task.addTag(addTag);
+      }
+    }
+  }
+
+  var action = new PlugIn.Action(function (selection, sender) {
+    const tagNamesPlugin = PlugIn.find("com.GwenWendell.timeTags");
+    if (tagNamesPlugin == null) {
+      throw new Error("Library plug-in not installed.");
+    }
+    // var libs = tagNamesPlugin.libraries;
+    // var libNames = libs.map((lib) => lib.name);
+    const tagNamesLibrary = tagNamesPlugin.library("timeTags");
+
+    // action code
+    var inputForm = new Form();
+    var estimatedMinutes = new Form.Field.Option(
+      "estimatedMinutes",
+      "Estimation in Minutes",
+      [0, 1, 5, 10, 15, 20, 30, 60, 1440],
+      ["none", "1m", "5m", "10m", "15m", "20m", "30m", "60m", "1d"],
+      5,
+      null
+    );
+    inputForm.addField(estimatedMinutes);
+
+    var formPrompt = "How long?";
+    var buttonTitle = "OK";
+    var formPromise = inputForm.show(formPrompt, buttonTitle);
+
+    formPromise.then(function (formObject) {
+      estimation = formObject.values["estimatedMinutes"];
+      estimationTagName = (estimation) ? estimation : 0
+
+      selection.tasks.forEach(function (task) {
+        const timeTagNames = tagNamesLibrary.timeTagNames();
+        timeTagNames.forEach((value, key) => {
+          flattenedTags.byName(value) || new Tag(value);
+        });
+        const timeTagName = timeTagNames.get(estimationTagName);
+        timeTagNames.delete(estimationTagName);
+
+        const timeTagToAdd = timeTagName
+          ? flattenedTags.byName(timeTagName)
+          : null;
+
+        const timeTagsToRemove = [];
+        timeTagNames.forEach((value, key) => {
+          timeTagsToRemove.push(flattenedTags.byName(value));
+        });
+
+        updateTask(task, estimation, timeTagToAdd, timeTagsToRemove);
+      });
+    });
+  });
+
+  action.validate = function (selection, sender) {
+    // validation code
+    return selection.tasks.length > 0;
+  };
+
+  return action;
+})();
