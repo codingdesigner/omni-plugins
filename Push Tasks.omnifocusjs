@@ -9,6 +9,7 @@
 	"shortLabel": "Push Tasks"
 }*/
 (() => {
+	var catchUp = false
 	var includeDefer = true
 	var dayCount = 1
 	var now = new Date()
@@ -24,16 +25,19 @@
 		var field
 		var currentDate
 		switch (dateField) {
-		case 'deferDate':
-			field = task['deferDate']
-			currentDate = (field != null) ? field : todayDefer
-			break
-		case 'dueDate':
-			field = task['dueDate']
-			currentDate = (field != null) ? field : todayDue
-			break
+			case 'deferDate':
+				field = task['deferDate']
+				if (field != null) {
+					currentDate = (!catchUp) ? field : todayDefer
+				}
+				break
+			case 'dueDate':
+				field = task['dueDate']
+				if (field != null) {
+					currentDate = (!catchUp) ? field : todayDue
+				}
+				break
 		}
-
 		if (forceDate || field != null) {
 			var dcAddDay = new DateComponents
 			dcAddDay.day = dayCount
@@ -45,7 +49,9 @@
 
 	function updateTask(task, forceDate = false) {
 		if (!task.completed) {
-			if (includeDefer) { task.deferDate = updateDate(task, 'deferDate', forceDate) }
+			if (task.deferDate) {
+				if (includeDefer) { task.deferDate = updateDate(task, 'deferDate', forceDate) }
+			}
 			task.dueDate = updateDate(task, 'dueDate', forceDate)
 			task.children.forEach(function(child){
 				if (includeDefer) { child.deferDate = updateDate(child, 'deferDate') }
@@ -55,20 +61,50 @@
 	}
 
 	var action = new PlugIn.Action(function(selection, sender){
+		var defaultPush = 1
+		catchUp = true;
+
+		// set up conditions for the form
+		selection.tasks.forEach(function(task){
+			var today = Calendar.current.startOfDay(now);
+			var dcDue = new DateComponents();
+			dcDue.hour = 17;
+			var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue);
+			if (todayDue <= task['dueDate']) {
+				catchUp = false;
+			}
+		})
+
+
+
 		// action code
 		var inputForm = new Form()
+		var catchUpToTodayFirst = new Form.Field.Checkbox(
+			"catchUpToTodayFirst",
+			"Catch up to today before adding days",
+			true
+		)
 		var shouldIncludeDefer = new Form.Field.Checkbox(
 			"shouldIncludeDefer",
 			"Apply to defer date",
 			true
 		)
+
+		if (catchUp) {
+			defaultPush = 0
+		}
+
 		var pushDays = new Form.Field.String(
 			"pushDays",
 			"Days to Push",
-			"1",
+			defaultPush,
 			Formatter.decimal
 		)
+
 		inputForm.addField(pushDays)
+		if (catchUp) {
+			inputForm.addField(catchUpToTodayFirst)
+		}
 		inputForm.addField(shouldIncludeDefer)
 		var formPrompt = "Number of days to add to project due dates:"
 		var buttonTitle = "OK"
