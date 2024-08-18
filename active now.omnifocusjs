@@ -2,11 +2,11 @@
 	"type": "action",
 	"targets": ["omnifocus"],
 	"author": "Gwen Wendell",
-	"identifier": "com.GwenWendell.backlog",
+	"identifier": "com.GwenWendell.activeNow",
 	"version": "1.0",
-	"description": "Move task to backlog",
-	"label": "Backlog",
-	"shortLabel": "Backlog"
+	"description": "Set task to be active",
+	"label": "Active Now",
+	"shortLabel": "Active Now"
 }*/
 (() => {
 	function updateTask(task, tag, onlyRemoveDates = false, includeChildren = false) {
