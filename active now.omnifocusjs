@@ -1,0 +1,66 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Gwen Wendell",
+	"identifier": "com.GwenWendell.backlog",
+	"version": "1.0",
+	"description": "Move task to backlog",
+	"label": "Backlog",
+	"shortLabel": "Backlog"
+}*/
+(() => {
+	function updateTask(task, tag, onlyRemoveDates = false, includeChildren = false) {
+		if (!task.completed) {
+			if (!onlyRemoveDates) {
+				task.addTag(tag)
+			}
+			task.deferDate = null
+			task.dueDate = null
+			if (includeChildren) {
+				task.children.forEach(function(child){
+					child.deferDate = null
+					child.dueDate = null
+				})
+			}
+		}
+	}
+
+	var action = new PlugIn.Action(function(selection, sender){
+		// action code
+		var inputForm = new Form()
+		var onlyRemoveDates = new Form.Field.Checkbox(
+			"onlyRemoveDates",
+			"Only remove due dates. don't move to backlog",
+			false
+		)
+		var shouldIncludeChildren = new Form.Field.Checkbox(
+			"shouldIncludeChildren",
+			"Apply to children",
+			false
+		)
+		inputForm.addField(onlyRemoveDates)
+		inputForm.addField(shouldIncludeChildren)
+
+		var formPrompt = "Also move children to backlog?"
+		var buttonTitle = "OK"
+		var formPromise = inputForm.show(formPrompt, buttonTitle)
+
+		formPromise.then(function(formObject) {
+			onlyRemoveDates = formObject.values["onlyRemoveDates"]
+			includeChildren = formObject.values["shouldIncludeChildren"]
+			var tagName = "backlog"
+			var tag = flattenedTags.byName(tagName) || new Tag(tagName)
+			selection.tasks.forEach(function(task){
+				updateTask(task, tag, onlyRemoveDates, includeChildren)
+			})
+		})
+
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		return (selection.tasks.length > 0)
+	};
+
+	return action;
+})();
