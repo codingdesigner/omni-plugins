@@ -9,15 +9,16 @@
 	"shortLabel": "Active Now"
 }*/
 (() => {
-	function updateTask(task, tag, onlyRemoveDates = false, includeChildren = false) {
+	function updateTask(task, tag, includeChildren = false) {
 		if (!task.completed) {
-			if (!onlyRemoveDates) {
-				task.addTag(tag)
-			}
+			const backlogTag = tagNamed('backlog')
+			task.removeTag(backlogTag)
+			task.addTag(tag)
 			task.deferDate = null
 			task.dueDate = null
 			if (includeChildren) {
 				task.children.forEach(function(child){
+					task.addTag(tag)
 					child.deferDate = null
 					child.dueDate = null
 				})
@@ -28,30 +29,23 @@
 	var action = new PlugIn.Action(function(selection, sender){
 		// action code
 		var inputForm = new Form()
-		var onlyRemoveDates = new Form.Field.Checkbox(
-			"onlyRemoveDates",
-			"Only remove due dates. don't move to backlog",
-			false
-		)
 		var shouldIncludeChildren = new Form.Field.Checkbox(
 			"shouldIncludeChildren",
 			"Apply to children",
-			false
+			true
 		)
-		inputForm.addField(onlyRemoveDates)
 		inputForm.addField(shouldIncludeChildren)
 
-		var formPrompt = "Also move children to backlog?"
+		var formPrompt = "Also set children to be active?"
 		var buttonTitle = "OK"
 		var formPromise = inputForm.show(formPrompt, buttonTitle)
 
 		formPromise.then(function(formObject) {
-			onlyRemoveDates = formObject.values["onlyRemoveDates"]
 			includeChildren = formObject.values["shouldIncludeChildren"]
-			var tagName = "backlog"
+			var tagName = "Active Now"
 			var tag = flattenedTags.byName(tagName) || new Tag(tagName)
 			selection.tasks.forEach(function(task){
-				updateTask(task, tag, onlyRemoveDates, includeChildren)
+				updateTask(task, tag, includeChildren)
 			})
 		})
 
