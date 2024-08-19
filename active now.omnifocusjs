@@ -18,7 +18,8 @@
 			task.dueDate = null
 			if (includeChildren) {
 				task.children.forEach(function(child){
-					task.addTag(tag)
+					child.removeTag(backlogTag)
+					child.addTag(tag)
 					child.deferDate = null
 					child.dueDate = null
 				})
