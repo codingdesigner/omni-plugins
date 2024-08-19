@@ -13,6 +13,8 @@
 		if (!task.completed) {
 			if (!onlyRemoveDates) {
 				task.addTag(tag)
+				const activeNowTag = tagNamed('Active Now')
+				task.removeTag(activeNowTag)
 			}
 			task.deferDate = null
 			task.dueDate = null
