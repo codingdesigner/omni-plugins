@@ -9,10 +9,12 @@
 	"shortLabel": "Today"
 }*/
 (() => {
-	function updateTask(task,todayDefer, todayDue, includeChildren = false) {
+	function updateTask(task,todayDefer, todayDue, setDeferDate = false, includeChildren = false) {
 		if (!task.completed) {
-			task.deferDate = todayDefer
 			task.dueDate = todayDue
+			if (setDeferDate) {
+				task.deferDate = todayDefer
+			}
 			if (includeChildren) {
 				task.children.forEach(function(child){
 					child.deferDate = todayDefer
@@ -37,20 +39,27 @@
     );
 		// action code
 		var inputForm = new Form()
+		var shouldSetDeferDate = new Form.Field.Checkbox(
+			"shouldSetDeferDate",
+			"Also set defer date?",
+			false
+		)
 		var shouldIncludeChildren = new Form.Field.Checkbox(
 			"shouldIncludeChildren",
 			"Apply to children",
 			false
 		)
+		inputForm.addField(shouldSetDeferDate)
 		inputForm.addField(shouldIncludeChildren)
 		var formPrompt = "Also set children to today?"
 		var buttonTitle = "OK"
 		var formPromise = inputForm.show(formPrompt, buttonTitle)
 
 		formPromise.then(function(formObject) {
+			setDeferDate = formObject.values["shouldSetDeferDate"]
 			includeChildren = formObject.values["shouldIncludeChildren"]
 			selection.tasks.forEach(function(task){
-				updateTask(task, todayDefer, todayDue, includeChildren)
+				updateTask(task, todayDefer, todayDue, setDeferDate, includeChildren)
 			})
 		})
 
