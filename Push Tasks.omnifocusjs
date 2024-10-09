@@ -9,130 +9,132 @@
 	"shortLabel": "Push Tasks"
 }*/
 (() => {
-	var catchUp = false
-	var includeDefer = true
-	var dayCount = 1
-	var now = new Date()
-	var today = Calendar.current.startOfDay(now)
-	var dcDue = new DateComponents
-	dcDue.hour = 17
-	var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue)
-	var dcDefer = new DateComponents
-	dcDefer.hour = 8
-	var todayDefer = Calendar.current.dateByAddingDateComponents(today, dcDefer)
+  var catchUp = false;
+  var includeDefer = true;
+  var dayCount = 1;
+  var now = new Date();
+  var today = Calendar.current.startOfDay(now);
+  var dcDue = new DateComponents();
+  dcDue.hour = 17;
+  var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue);
+  var dcDefer = new DateComponents();
+  dcDefer.hour = 8;
+  var todayDefer = Calendar.current.dateByAddingDateComponents(today, dcDefer);
 
-	function updateDate(task, dateField, forceDate = false) {
-		var field
-		var currentDate
-		switch (dateField) {
-			case 'deferDate':
-				field = task['deferDate']
-				if (field != null) {
-					currentDate = (!catchUp) ? field : todayDefer
-				}
-				break
-			case 'dueDate':
-				field = task['dueDate']
-				if (field != null) {
-					currentDate = (!catchUp) ? field : todayDue
-				}
-				break
-		}
-		if (forceDate || field != null) {
-			var dcAddDay = new DateComponents
-			dcAddDay.day = dayCount
-			var addDay = Calendar.current.dateByAddingDateComponents(currentDate, dcAddDay)
-			return addDay
-		}
-		return null
-	}
+  function updateDate(task, dateField, forceDate = false) {
+    var field;
+    var currentDate;
+    switch (dateField) {
+      case "deferDate":
+        field = task["deferDate"];
+        if (field != null) {
+          currentDate = !catchUp ? field : todayDefer;
+        }
+        break;
+      case "dueDate":
+        field = task["dueDate"];
+        if (field != null) {
+          currentDate = !catchUp ? field : todayDue;
+        }
+        break;
+    }
+    if (forceDate || field != null) {
+      var dcAddDay = new DateComponents();
+      dcAddDay.day = dayCount;
+      var addDay = Calendar.current.dateByAddingDateComponents(
+        currentDate,
+        dcAddDay
+      );
+      return addDay;
+    }
+    return null;
+  }
 
-	function updateTask(task, forceDate = false) {
-		if (!task.completed) {
-			if (task.deferDate) {
-				if (includeDefer) { task.deferDate = updateDate(task, 'deferDate', forceDate) }
-			}
-			task.dueDate = updateDate(task, 'dueDate', forceDate)
-			task.children.forEach(function(child){
-				if (includeDefer) { child.deferDate = updateDate(child, 'deferDate') }
-				child.dueDate = updateDate(child, 'dueDate')
-			})
-		}
-	}
+  function updateTask(task, forceDate = false) {
+    if (!task.completed) {
+      if (includeDefer && task.deferDate) {
+        task.deferDate = updateDate(task, "deferDate", forceDate);
+      }
+      task.dueDate = updateDate(task, "dueDate", forceDate);
+      task.children.forEach(function (child) {
+        if (includeDefer && child.deferDate) {
+          child.deferDate = updateDate(child, "deferDate");
+        }
+        child.dueDate = updateDate(child, "dueDate");
+      });
+    }
+  }
 
-	var action = new PlugIn.Action(function(selection, sender){
-		var defaultPush = 1
-		catchUp = true;
+  var action = new PlugIn.Action(function (selection, sender) {
+    var defaultPush = 1;
+    catchUp = true;
 
-		// set up conditions for the form
-		selection.tasks.forEach(function(task){
-			var today = Calendar.current.startOfDay(now);
-			var dcDue = new DateComponents();
-			dcDue.hour = 17;
-			var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue);
-			if (todayDue <= task['dueDate']) {
-				catchUp = false;
-			}
-		})
+    // set up conditions for the form
+    selection.tasks.forEach(function (task) {
+      var today = Calendar.current.startOfDay(now);
+      var dcDue = new DateComponents();
+      dcDue.hour = 17;
+      var todayDue = Calendar.current.dateByAddingDateComponents(today, dcDue);
+      if (todayDue <= task["dueDate"]) {
+        catchUp = false;
+      }
+    });
 
+    // action code
+    var inputForm = new Form();
+    var catchUpToTodayFirst = new Form.Field.Checkbox(
+      "catchUpToTodayFirst",
+      "Catch up to today before adding days",
+      true
+    );
+    var shouldIncludeDefer = new Form.Field.Checkbox(
+      "shouldIncludeDefer",
+      "Apply to defer date if present",
+      true
+    );
 
+    if (catchUp) {
+      defaultPush = 0;
+    }
 
-		// action code
-		var inputForm = new Form()
-		var catchUpToTodayFirst = new Form.Field.Checkbox(
-			"catchUpToTodayFirst",
-			"Catch up to today before adding days",
-			true
-		)
-		var shouldIncludeDefer = new Form.Field.Checkbox(
-			"shouldIncludeDefer",
-			"Apply to defer date",
-			true
-		)
+    var pushDays = new Form.Field.String(
+      "pushDays",
+      "Days to Push",
+      defaultPush,
+      Formatter.decimal
+    );
 
-		if (catchUp) {
-			defaultPush = 0
-		}
+    inputForm.addField(pushDays);
+    if (catchUp) {
+      inputForm.addField(catchUpToTodayFirst);
+    }
+    inputForm.addField(shouldIncludeDefer);
+    var formPrompt = "Number of days to add to project due dates:";
+    var buttonTitle = "OK";
+    var formPromise = inputForm.show(formPrompt, buttonTitle);
 
-		var pushDays = new Form.Field.String(
-			"pushDays",
-			"Days to Push",
-			defaultPush,
-			Formatter.decimal
-		)
+    inputForm.validate = function (formObject) {
+      if (parseInt(formObject.values["pushDays"]) === NaN) {
+        return false;
+      }
+      return true;
+    };
 
-		inputForm.addField(pushDays)
-		if (catchUp) {
-			inputForm.addField(catchUpToTodayFirst)
-		}
-		inputForm.addField(shouldIncludeDefer)
-		var formPrompt = "Number of days to add to project due dates:"
-		var buttonTitle = "OK"
-		var formPromise = inputForm.show(formPrompt, buttonTitle)
+    formPromise.then(function (formObject) {
+      includeDefer = formObject.values["shouldIncludeDefer"];
+      dayCount = parseInt(formObject.values["pushDays"]);
+      // selection options: tasks, projects, folders, tags, allObjects
+      selection.tasks.forEach(function (task) {
+        updateTask(task, true);
+      });
+    });
+  });
 
-		inputForm.validate = function(formObject){
-			if (parseInt(formObject.values["pushDays"]) === NaN) {
-				return false
-			}
-			return true
-		}
+  action.validate = function (selection, sender) {
+    // validation code
+    // selection options: tasks, projects, folders, tags, allObjects
+    return selection.tasks.length > 0;
+  };
 
-		formPromise.then(function(formObject) {
-			includeDefer = formObject.values["shouldIncludeDefer"]
-			dayCount = parseInt(formObject.values["pushDays"])
-			// selection options: tasks, projects, folders, tags, allObjects
-			selection.tasks.forEach(function(task){
-				updateTask(task, true)
-			})
-		})
-
-	});
-
-	action.validate = function(selection, sender){
-		// validation code
-		// selection options: tasks, projects, folders, tags, allObjects
-		return (selection.tasks.length > 0)
-	};
-
-	return action;
+  return action;
 })();
